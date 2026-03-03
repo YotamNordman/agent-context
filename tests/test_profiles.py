@@ -2,8 +2,10 @@
 
 from agent_context.profiles import (
     BUILTIN_PROFILES,
+    AgentDefinition,
     MCPServer,
     ToolProfile,
+    get_agent,
     get_profile,
 )
 
@@ -213,3 +215,110 @@ class TestProfileImmutability:
         assert profile1 is not None
         assert profile2 is not None
         assert profile1 is not profile2, "Each call should return a separate deep copy"
+
+
+class TestAgentDefinition:
+    """Tests for AgentDefinition dataclass."""
+
+    def test_create_agent_with_required_fields(self):
+        """Test creating an AgentDefinition with only required fields."""
+        agent = AgentDefinition(
+            name="test-agent",
+            description="Test agent",
+            instructions="Do something",
+        )
+        assert agent.name == "test-agent"
+        assert agent.description == "Test agent"
+        assert agent.instructions == "Do something"
+        assert agent.allowed_tools == []
+        assert agent.mcp_servers == []
+
+    def test_create_agent_with_all_fields(self):
+        """Test creating an AgentDefinition with all fields."""
+        agent = AgentDefinition(
+            name="test-agent",
+            description="Test agent",
+            instructions="Do something",
+            allowed_tools=["tool1", "tool2"],
+            mcp_servers=["server1", "server2"],
+        )
+        assert agent.name == "test-agent"
+        assert agent.description == "Test agent"
+        assert agent.instructions == "Do something"
+        assert agent.allowed_tools == ["tool1", "tool2"]
+        assert agent.mcp_servers == ["server1", "server2"]
+
+    def test_agent_fields_have_defaults(self):
+        """Test that agent optional fields default to empty lists."""
+        agent = AgentDefinition(
+            name="test",
+            description="test",
+            instructions="test",
+        )
+        assert isinstance(agent.allowed_tools, list)
+        assert isinstance(agent.mcp_servers, list)
+        assert len(agent.allowed_tools) == 0
+        assert len(agent.mcp_servers) == 0
+
+
+class TestGetAgent:
+    """Tests for get_agent function."""
+
+    def test_get_predefined_incident_investigator_agent(self):
+        """Test getting the incident-investigator agent."""
+        agent = get_agent("incident-investigator")
+        assert agent is not None
+        assert agent.name == "incident-investigator"
+        assert "incident" in agent.description.lower()
+        assert len(agent.instructions) > 0
+        assert "icm" in agent.mcp_servers
+
+    def test_get_predefined_tsg_finder_agent(self):
+        """Test getting the tsg-finder agent."""
+        agent = get_agent("tsg-finder")
+        assert agent is not None
+        assert agent.name == "tsg-finder"
+        assert "troubleshooting" in agent.description.lower()
+        assert len(agent.instructions) > 0
+        assert "msdocs" in agent.mcp_servers
+
+    def test_get_nonexistent_agent(self):
+        """Test getting a nonexistent agent returns None."""
+        agent = get_agent("nonexistent-agent")
+        assert agent is None
+
+    def test_get_agent_returns_deep_copy(self):
+        """Test that get_agent returns independent copies."""
+        agent1 = get_agent("incident-investigator")
+        agent2 = get_agent("incident-investigator")
+        
+        assert agent1 is not None
+        assert agent2 is not None
+        assert agent1 is not agent2, "Should return separate deep copies"
+        
+        # Verify mutation doesn't affect other copies
+        if agent1:
+            agent1.allowed_tools.append("new_tool")
+            assert "new_tool" not in agent2.allowed_tools
+
+
+class TestOncallProfileAgents:
+    """Tests that verify oncall profile includes custom agents."""
+
+    def test_oncall_profile_has_custom_agents(self):
+        """Test that oncall profile includes custom agents."""
+        profile = get_profile("oncall")
+        assert profile is not None
+        assert len(profile.custom_agents) > 0
+
+    def test_oncall_profile_has_incident_investigator(self):
+        """Test that oncall profile includes incident-investigator agent."""
+        profile = get_profile("oncall")
+        assert profile is not None
+        assert "incident-investigator" in profile.custom_agents
+
+    def test_oncall_profile_has_tsg_finder(self):
+        """Test that oncall profile includes tsg-finder agent."""
+        profile = get_profile("oncall")
+        assert profile is not None
+        assert "tsg-finder" in profile.custom_agents
