@@ -43,7 +43,8 @@ class ToolProfile:
 _AGENTS = {
     "incident-investigator": AgentDefinition(
         name="incident-investigator",
-        description="Investigates and analyzes production incidents using ICM and monitoring tools",
+        description=("Investigates and analyzes production incidents using ICM "
+                     "and monitoring tools"),
         instructions="""You are an incident investigation specialist. Your role is to:
 1. Analyze incidents using the ICM MCP server to gather context
 2. Review affected services and components
@@ -174,4 +175,3 @@ def get_agent(name: str) -> AgentDefinition | None:
     if agent is not None:
         return copy.deepcopy(agent)
     return None
-

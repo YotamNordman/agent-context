@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 
 from .analyzer import analyze
-from .profiles import ToolProfile, get_agent, get_profile
+from .profiles import AgentDefinition, ToolProfile, get_agent, get_profile
 from .renderer import render_instructions
 
 logger = logging.getLogger(__name__)
@@ -79,7 +79,8 @@ def inject_custom_agents(
     Args:
         workspace: Path to the git workspace root.
         profile: Profile name (str) or ToolProfile object.
-        overwrite: If True, overwrite existing agent files. Default: only add missing.
+        overwrite: If True, overwrite existing agent files. Default: only add
+            missing.
 
     Returns:
         Dict of {filename: "written" | "skipped" | "error" | "empty"} for each agent file.
@@ -133,7 +134,7 @@ def inject_custom_agents(
     return status
 
 
-def _format_agent_file(agent) -> str:
+def _format_agent_file(agent: AgentDefinition) -> str:
     """Format an agent definition as markdown content.
 
     Args:
