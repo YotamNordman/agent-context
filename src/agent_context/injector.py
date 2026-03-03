@@ -75,7 +75,7 @@ def generate_mcp_config(
     workspace: str | Path,
     profile: ToolProfile,
     env_overrides: dict[str, str] | None = None,
-) -> dict:
+) -> dict[str, str]:
     """Generate Copilot CLI mcp-config.json with only needed MCP servers.
 
     Generates a session-specific MCP configuration file in the Copilot CLI format.
