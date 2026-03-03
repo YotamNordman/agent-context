@@ -217,7 +217,7 @@ class TestMCPConfigGeneration:
         profile = ToolProfile(name="test", mcp_servers=servers)
 
         overrides = {"TOKEN": "override_value"}
-        status = generate_mcp_config(ws, profile, env_overrides=overrides)
+        generate_mcp_config(ws, profile, env_overrides=overrides)
 
         config = json.loads((ws / ".copilot" / "mcp-config.json").read_text())
         server_config = config["mcpServers"]["server1"]
@@ -238,7 +238,7 @@ class TestMCPConfigGeneration:
         ]
         profile = ToolProfile(name="test", mcp_servers=servers)
 
-        status = generate_mcp_config(ws, profile)
+        generate_mcp_config(ws, profile)
         config = json.loads((ws / ".copilot" / "mcp-config.json").read_text())
         server_config = config["mcpServers"]["server1"]
 
