@@ -96,8 +96,8 @@ def _detect_python(workspace: Path, info: WorkspaceInfo) -> None:
             info.test_runner = "pytest"
             src = " ".join(info.source_dirs) if info.source_dirs else "src/"
             tst = " ".join(info.test_dirs) if info.test_dirs else "tests/"
-            info.test_command = f"uv run pytest {tst}-v"
-            info.lint_command = f"uv run ruff check {src}{tst}"
+            info.test_command = f"uv run pytest {tst.rstrip('/')}" + " -v"
+            info.lint_command = f"uv run ruff check {src.rstrip('/')} {tst.rstrip('/')}"
 
         if "ruff" in content:
             info.lint_command = info.lint_command or "uv run ruff check ."
