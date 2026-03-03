@@ -19,12 +19,14 @@ Generates targeted instruction files based on workspace analysis:
 - `testing.instructions.md` — test commands and patterns (when test runner detected)
 - `copilot-instructions.md` — completion checklist and verification steps
 
-### ⚙️ Tool Profiles
+### ⚙️ Tool Profiles & MCP Config Generation
 Predefined configurations for MCP (Model Context Protocol) servers:
 - **base:** Minimal profile with no additional servers
 - **oncall:** ICM, ADO-AFD, ADX, Microsoft Docs, EngHub
 - **azure:** Azure DevOps, ADX, Microsoft Docs
 - **docs:** Microsoft Docs, EngHub, Context7
+
+When using `--profile`, automatically generates `mcp-config.json` with the selected profile's MCP server configurations.
 
 ## Quick Start
 
@@ -35,17 +37,18 @@ pip install -e .
 # Analyze workspace and inject instructions
 python -m agent_context inject /path/to/workspace
 
-# With task context
+# With task context and MCP profile
 python -m agent_context inject /workspace \
   --task-id fix-auth \
   --feedback "Missing error handling" \
-  --acceptance-criteria "All tests pass"
+  --acceptance-criteria "All tests pass" \
+  --profile oncall
 ```
 
 ## Python API
 
 ```python
-from agent_context import inject, analyze, get_profile
+from agent_context import inject, get_profile
 
 # Basic injection
 status = inject("/workspace")
@@ -59,16 +62,16 @@ task_context = {
 }
 status = inject("/workspace", task_context=task_context)
 
-# Analyze workspace only
-from pathlib import Path
-info = analyze(Path("/workspace"))
-print(f"Detected: {info.languages}, {info.frameworks}")
-print(f"Test command: {info.test_command}")
+# With tool profile (generates mcp-config.json)
+status = inject("/workspace", profile_name="oncall")
+print(status.get("mcp_config_path"))  # Path to generated mcp-config.json
 
-# Get tool profile
+# Get tool profile details
 profile = get_profile("oncall")
 print(f"Profile has {len(profile.mcp_servers)} MCP servers")
 ```
+
+**Note:** The workspace analysis function is internal. Use `inject()` which performs analysis automatically.
 
 ## CLI Reference
 
@@ -76,28 +79,33 @@ print(f"Profile has {len(profile.mcp_servers)} MCP servers")
 # Basic usage
 python -m agent_context inject <workspace>
 
-# With context
+# Full options
 python -m agent_context inject <workspace> \
   --task-id <string> \
   --task-desc <string> \
   --acceptance-criteria <string> \
   --feedback <string> \
   --project-id <string> \
+  --profile <profile_name> \
   --overwrite  # Replace existing files
   --verbose    # Debug logging
 ```
 
+Available profiles: `base`, `oncall`, `azure`, `docs`
+
 ## Example Output
 
-For a FastAPI + pytest project:
+For a FastAPI + pytest project with profile:
 
 ```bash
-$ python -m agent_context inject ./my-api
+$ python -m agent_context inject ./my-api --profile oncall
 {
   "safety.instructions.md": "written",
   "git-workflow.instructions.md": "written", 
   "testing.instructions.md": "written",
-  "copilot-instructions.md": "written"
+  "copilot-instructions.md": "written",
+  "mcp-config.json": "written",
+  "mcp_config_path": "/path/to/my-api/mcp-config.json"
 }
 ```
 
@@ -111,13 +119,29 @@ Lint code: `uv run ruff check src/ tests/`
 Import patterns: `from src.my_api import ...`
 ```
 
+Generated `mcp-config.json` includes:
+```json
+{
+  "mcpServers": {
+    "icm": {
+      "command": "mcp-icm",
+      "args": []
+    },
+    "ado-afd": {
+      "command": "mcp-ado-afd",
+      "args": []
+    }
+  }
+}
+```
+
 ## Architecture
 
 ```
-    ┌──────────────┐    ┌─────────────────┐
-   Workspace     │───▶│   Analyzer   │───▶│  Instructions   │
-   (files/dirs)  │    │  (detector)  │    │   Templates     │
-    └──────────────┘    └─────────────────┘
+┌──────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Workspace  │───▶│    Analyzer     │───▶│  Instructions   │
+│ (files/dirs) │    │   (detector)    │    │   Templates     │
+└──────────────┘    └─────────────────┘    └─────────────────┘
                               │                      │
                               ▼                      ▼
                       ┌──────────────┐    ┌─────────────────┐
@@ -127,8 +151,9 @@ Import patterns: `from src.my_api import ...`
                                                    │
                                                    ▼
                                         ┌─────────────────┐
-                                        │     Injector    │
-                                        │ (.github/files) │
+                                        │    Injector     │
+                                        │(.github/files + │
+                                        │ mcp-config.json)│
                                         └─────────────────┘
 ```
 
@@ -137,14 +162,14 @@ Import patterns: `from src.my_api import ...`
 ### With dispatcher
 ```bash
 # In K8s Job setup command
-python -m agent_context inject /workspace --task-id $TASK_ID \
+python -m agent_context inject /workspace --task-id $TASK_ID --profile oncall \
   && copilot -p "$PROMPT" --allow-all
 ```
 
 ### CI/CD Pipeline
 ```yaml
 - name: Inject context
-  run: python -m agent_context inject .
+  run: python -m agent_context inject . --profile base
 - name: Run agent
   run: copilot fix-tests --allow-all
 ```
@@ -177,8 +202,6 @@ uv run pytest tests/ -v        # Run all tests
 uv run ruff check src/ tests/  # Lint code
 uv run ruff format .           # Format code
 ```
-
-Test coverage: 44 tests covering analyzer, injector, and profiles.
 
 ## Why This Approach Works
 
