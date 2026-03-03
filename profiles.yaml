@@ -1,0 +1,16 @@
+# Project profile assignments
+# Maps project IDs to tool profiles and MCP server configurations
+
+projects:
+  # Simple profile assignment using a builtin profile name
+  my-project: azure
+  
+  # Extended profile with additional MCP servers
+  oncall-project:
+    profile: oncall
+    extends:
+      - context7
+  
+  # Custom project with multiple MCP servers
+  docs-project:
+    profile: docs
