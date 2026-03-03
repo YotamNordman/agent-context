@@ -5,7 +5,7 @@ import tempfile
 from pathlib import Path
 
 from agent_context.injector import inject, inject_custom_agents
-from agent_context.profiles import AgentDefinition, ToolProfile
+from agent_context.profiles import ToolProfile
 
 
 def _make_workspace(files: dict[str, str]) -> Path:
