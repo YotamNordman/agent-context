@@ -1,6 +1,6 @@
 # agent-context
 
-Deterministic context and tool injection for AI agent workspaces. Analyzes your workspace structure, detects languages, frameworks, and build tools, then generates tailored instruction files, tool profiles, and MCP server configurations. Agents get workspace-specific guidance without wasting context tokens.
+Deterministic context injection for AI agent workspaces. Analyzes your workspace structure, detects languages, frameworks, and build tools, then generates tailored instruction files and tool profiles. Agents get workspace-specific guidance without wasting context tokens.
 
 ## Overview
 
@@ -8,9 +8,7 @@ Deterministic context and tool injection for AI agent workspaces. Analyzes your 
 
 1. **Analyzes** workspace structure: languages, frameworks, test runners, build tools, Docker/K8s manifests, CI configuration
 2. **Generates** deterministic instruction files for Copilot CLI (safety, git workflow, testing, completion checklist)
-3. **Injects** tool profiles and MCP server configurations for agent tool access
-4. **Manages** skill bundles and custom agent definitions for multi-agent coordination
-5. **Produces** claude_desktop_config.json for Claude Desktop or agent runtime consumption
+3. **Provides** tool profiles for MCP server configuration definitions
 
 No LLM calls—pure file analysis, Jinja2 templates, and dataclass configurations.
 
@@ -23,23 +21,21 @@ Workspace
     ↓
 [Analyzer] → WorkspaceInfo {languages, frameworks, test_runner, ...}
     ↓
-┌─────────────────────────┬────────────────────────┬──────────────────────┐
-│                         │                        │                      │
-[Renderer]            [ToolProfile]           [SkillBundle]       [MCPConfig]
-    ↓                     ↓                        ↓                      ↓
-Instruction         Tool Profiles &           Skill Bundles        MCP Server
-Files             MCP Servers              Agent Manifests        Configuration
-    ↓                     ↓                        ↓                      ↓
-.github/             profiles.yaml         agent_manifest.json   claude_desktop_config.json
-instructions/
+┌─────────────────────────┬────────────────────────┐
+│                         │                        │
+[Renderer]            [ToolProfile]                │
+    ↓                     ↓                        │
+Instruction         Tool Profiles &                │
+Files             MCP Server Definitions          │
+    ↓                     ↓                        │
+.github/             profiles.yaml                │
+instructions/                                     │
 ```
 
 **Data Flow:**
 1. Analyzer examines `pyproject.toml`, `package.json`, `Dockerfile`, `.github/workflows`, etc.
 2. Renderer uses Jinja2 templates with detected info to generate instruction files
-3. Tool profiles define which MCP servers and custom agents are available
-4. Skill bundles group related agents for multi-agent workflows
-5. MCP config generator produces runtime-ready server configurations
+3. Tool profiles define MCP server configurations for external agent tooling
 
 ---
 
@@ -93,12 +89,14 @@ The completion checklist directly prevents these in ~670 tokens (vs ~2,000 for g
 
 ### 3. Tool Profiles
 
-Define which MCP servers and custom agents are available. Predefined profiles:
+Define MCP server configurations for external agent tooling. Predefined profiles:
 
 - **`base`** — No external tools (safe default)
 - **`oncall`** — ICM, ADO, ADX, MS Docs, EngHub (incident response tools)
 - **`azure`** — ADO, ADX, MS Docs (Azure/DevOps operations)
 - **`docs`** — MS Docs, EngHub, Context7 (documentation tools)
+
+**Note:** Tool profiles provide MCP server configuration templates. The actual servers and runtime integration are external to agent-context.
 
 **Custom profiles** can be defined in `profiles.yaml`:
 
@@ -117,66 +115,6 @@ profiles:
     custom_agents: []
     env_vars:
       GITHUB_TOKEN: ${GITHUB_TOKEN}
-```
-
-### 4. Skill Bundles
-
-Group related agents for multi-agent workflows. Predefined bundles include release pipelines, incident response, documentation, and engineering hub integrations.
-
-**Example:**
-
-```python
-from agent_context import get_skill_bundle
-
-bundle = get_skill_bundle("release-pipeline")
-print(bundle.name)       # "release-pipeline"
-print(bundle.agents)     # List of AgentDefinition objects
-print(bundle.skills)     # Grouped agent skills
-
-# Use in custom agent injection
-from agent_context import inject_custom_agents
-inject_custom_agents("/workspace", bundle=bundle)
-```
-
-### 5. MCP Config Generation
-
-Generate `claude_desktop_config.json` or custom MCP runtime configs with environment variable substitution.
-
-```python
-from agent_context import generate_mcp_config
-
-config = generate_mcp_config(
-    profile_name="oncall",
-    project_id="my-project"
-)
-
-# config is a dict ready for claude_desktop_config.json:
-# {
-#   "mcpServers": {
-#     "icm": { "command": "mcp-icm", "args": [], "env": {} },
-#     ...
-#   }
-# }
-```
-
-Environment variables are substituted (e.g., `${GITHUB_TOKEN}` → actual token value).
-
-### 6. Agent Manifests
-
-Define custom agents and their capabilities for multi-agent workflows.
-
-```python
-from agent_context import AgentDefinition, ToolProfile
-
-agent = AgentDefinition(
-    name="release-manager",
-    description="Handles release automation",
-    profile_name="azure",
-    entry_point="./agents/release.py",
-    timeout_seconds=3600,
-)
-
-# Agents are bundled in skill bundles for coordinated execution
 ```
 
 ---
@@ -288,84 +226,9 @@ for name, profile in BUILTIN_PROFILES.items():
     print(f"{name}: {len(profile.mcp_servers)} servers")
 ```
 
-#### Skill bundles
+### Integration Example
 
-```python
-from agent_context import get_skill_bundle
-
-# Get predefined bundle
-bundle = get_skill_bundle("release-pipeline")
-
-if bundle:
-    print(f"Bundle: {bundle.name}")
-    print(f"Agents: {[a.name for a in bundle.agents]}")
-    print(f"Skills: {list(bundle.skills.keys())}")
-
-# List available bundles
-from agent_context import BUILTIN_SKILL_BUNDLES
-
-for name in BUILTIN_SKILL_BUNDLES:
-    print(f"- {name}")
-```
-
-#### Custom agent injection
-
-```python
-from agent_context import inject_custom_agents, SkillBundle, AgentDefinition
-
-# Inject agents from a skill bundle
-status = inject_custom_agents(
-    "/workspace",
-    bundle=bundle,  # SkillBundle instance
-)
-
-# Or create custom agents
-agents = [
-    AgentDefinition(
-        name="custom-agent",
-        description="Does custom work",
-        profile_name="base",
-        entry_point="./agents/custom.py",
-        timeout_seconds=1800,
-    ),
-]
-
-# Inject custom agents (creates agent_manifest.json)
-status = inject_custom_agents(
-    "/workspace",
-    agents=agents,
-)
-```
-
-#### MCP config generation
-
-```python
-from agent_context import generate_mcp_config
-
-# Generate from profile
-config = generate_mcp_config(
-    profile_name="oncall",
-    project_id="my-project",
-)
-
-# config is ready for claude_desktop_config.json or runtime
-# {
-#   "mcpServers": {
-#     "icm": {"command": "mcp-icm", ...},
-#     ...
-#   }
-# }
-
-# With environment variable substitution
-config = generate_mcp_config(
-    profile_name="azure",
-    env_vars={"GITHUB_TOKEN": "ghp_xyz", "ADO_PAT": "..."}
-)
-```
-
-### Integration with dispatcher
-
-In K8s Job or container startup:
+In a container or script setup:
 
 ```bash
 #!/bin/bash
@@ -379,22 +242,17 @@ python -m agent_context inject /workspace \
   --profile oncall \
   --project-id my-project
 
-# Inject custom agents if needed
-python -m agent_context inject_custom_agents /workspace \
-  --bundle release-pipeline
-
-# Now run the agent
+# Now run the agent with contextual instructions
 copilot -p "$PROMPT" --allow-all
 ```
 
 Or in Python:
 
 ```python
-import subprocess
-from agent_context import inject, inject_custom_agents
+from agent_context import inject
 
 # Phase 1: Inject core instructions
-inject(
+status = inject(
     "/workspace",
     task_context={
         "task_id": task_id,
@@ -403,13 +261,12 @@ inject(
     },
 )
 
-# Phase 2: Inject custom agents if multi-agent task
-inject_custom_agents(
-    "/workspace",
-    bundle=bundle,
-)
+# Check injection status
+for file, status in status.items():
+    print(f"{file}: {status}")
 
-# Phase 3: Run agent
+# Phase 2: Run agent with context
+import subprocess
 subprocess.run([
     "copilot",
     "-p", prompt,
@@ -510,23 +367,6 @@ Analyze workspace and inject instruction files.
 
 **Returns:** Dict of `{filename: "written" | "skipped" | "error"}`
 
-#### `inject_custom_agents(workspace, bundle=None, agents=None) → dict[str, str]`
-
-Inject custom agent definitions and skill bundles.
-
-**Parameters:**
-- `workspace` (str | Path): Workspace root directory
-- `bundle` (SkillBundle): Predefined skill bundle to inject
-- `agents` (list[AgentDefinition]): Custom agents to inject
-
-**Returns:** Dict of `{filename: "written" | "skipped" | "error"}`
-
-#### `analyze(workspace) → WorkspaceInfo`
-
-Analyze workspace structure and capabilities.
-
-**Returns:** WorkspaceInfo with detected languages, frameworks, test runners, etc.
-
 #### `get_profile(name: str) → ToolProfile | None`
 
 Get a builtin tool profile by name.
@@ -534,24 +374,14 @@ Get a builtin tool profile by name.
 **Parameters:**
 - `name`: Profile name (e.g., "oncall", "azure", "docs", "base")
 
-#### `get_skill_bundle(name: str) → SkillBundle | None`
+#### `analyze(workspace) → WorkspaceInfo`
 
-Get a predefined skill bundle by name.
-
-#### `get_agent(name: str) → AgentDefinition | None`
-
-Get a predefined agent by name.
-
-#### `generate_mcp_config(profile_name, project_id=None, env_vars=None) → dict`
-
-Generate MCP server configuration from a profile.
+Analyze workspace structure and capabilities.
 
 **Parameters:**
-- `profile_name`: Profile name (e.g., "oncall")
-- `project_id`: Optional project identifier
-- `env_vars`: Optional environment variable overrides
+- `workspace` (str | Path): Workspace root directory
 
-**Returns:** Dict ready for `claude_desktop_config.json`
+**Returns:** WorkspaceInfo with detected languages, frameworks, test runners, etc.
 
 ### Data Classes
 
@@ -575,12 +405,12 @@ Detected workspace characteristics.
 
 #### `ToolProfile`
 
-Tool and agent configuration.
+Tool configuration definition.
 
 **Attributes:**
 - `name` (str): Profile identifier
 - `mcp_servers` (list[MCPServer]): MCP server configurations
-- `custom_agents` (list[str]): Agent IDs to include
+- `custom_agents` (list[str]): Agent IDs (for future use)
 - `env_vars` (dict[str, str]): Environment variables
 
 #### `MCPServer`
@@ -593,26 +423,6 @@ MCP server configuration.
 - `args` (list[str]): Command arguments
 - `env` (dict[str, str]): Environment variables
 - `tools_filter` (list[str] | None): Specific tools to expose
-
-#### `SkillBundle`
-
-Grouped agents and related skills.
-
-**Attributes:**
-- `name` (str): Bundle identifier
-- `agents` (list[AgentDefinition]): Agents in bundle
-- `skills` (dict[str, list[str]]): Grouped agent capabilities
-
-#### `AgentDefinition`
-
-Custom agent definition.
-
-**Attributes:**
-- `name` (str): Agent name
-- `description` (str): Agent purpose
-- `profile_name` (str): Tool profile this agent uses
-- `entry_point` (str): Python file or executable path
-- `timeout_seconds` (int): Execution timeout
 
 ---
 
@@ -691,31 +501,46 @@ Generated files guide agent on:
 - How to run tests: `uv run pytest tests/ -v`
 - Completion checklist to verify work
 
-### Example 2: Multi-agent release workflow
+### Example 2: JavaScript project with custom tool profile
 
 ```python
-from agent_context import inject, inject_custom_agents, get_skill_bundle
+from agent_context import inject, ToolProfile, MCPServer
 
-# Setup workspace
-inject(
-    "/workspace",
-    task_context={"task_id": "release-1.0.0"},
+# Create custom profile for a React project
+custom_profile = ToolProfile(
+    name="frontend",
+    mcp_servers=[
+        MCPServer(
+            name="github",
+            command="mcp-github",
+            args=["--org", "myorg"],
+            env={"GITHUB_TOKEN": "${GITHUB_TOKEN}"}
+        )
+    ],
+    custom_agents=[],  # Reserved for future use
+    env_vars={"NODE_ENV": "development"}
 )
 
-# Add release pipeline agents
-bundle = get_skill_bundle("release-pipeline")
-inject_custom_agents("/workspace", bundle=bundle)
+# Use with injection
+status = inject(
+    "/workspace",
+    task_context={
+        "task_id": "component-update",
+        "description": "Update React component",
+        "feedback": "Add proper TypeScript types",
+    }
+)
 
-# Now `agent_manifest.json` contains agents:
-# - release-manager (verifies changelog, bumps version)
-# - test-coordinator (runs full test suite)
-# - changelog-validator (ensures CHANGELOG is updated)
-# - git-coordinator (creates release tag and PR)
+print(status)
+# {
+#   "safety.instructions.md": "written",
+#   "git-workflow.instructions.md": "written", 
+#   "testing.instructions.md": "written",  # if test runner detected
+#   "copilot-instructions.md": "written"
+# }
 ```
 
-Each agent has its own tool profile and can run in parallel or sequence.
-
-### Example 3: K8s deployment in CI/CD
+### Example 3: Container deployment setup
 
 ```bash
 #!/bin/bash
@@ -729,17 +554,14 @@ python -m agent_context inject /workspace \
   --task-id "$TASK_ID" \
   --profile "$PROFILE"
 
-# Generate MCP config for agent runtime
-python -c "
-from agent_context import generate_mcp_config
-import json
+# Verify injection
+ls -la .github/instructions/
+# safety.instructions.md
+# git-workflow.instructions.md 
+# testing.instructions.md
+# ../copilot-instructions.md
 
-config = generate_mcp_config('$PROFILE')
-with open('mcp-config.json', 'w') as f:
-    json.dump(config, f, indent=2)
-"
-
-# Deploy
+# Deploy with contextualized agent
 kubectl apply -f k8s/
 ```
 
