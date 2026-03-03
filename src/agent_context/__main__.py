@@ -24,6 +24,7 @@ def main() -> None:
     inject_cmd.add_argument("--acceptance-criteria", help="Acceptance criteria")
     inject_cmd.add_argument("--feedback", help="Previous review feedback")
     inject_cmd.add_argument("--project-id", help="Project identifier")
+    inject_cmd.add_argument("--profile", help="Tool profile name (base, oncall, azure, docs)")
     inject_cmd.add_argument("--overwrite", action="store_true", help="Overwrite existing files")
     inject_cmd.add_argument("--verbose", "-v", action="store_true")
 
@@ -50,7 +51,12 @@ def main() -> None:
     if args.project_id:
         task_context["project_id"] = args.project_id
 
-    status = inject(args.workspace, task_context=task_context or None, overwrite=args.overwrite)
+    status = inject(
+        args.workspace,
+        task_context=task_context or None,
+        overwrite=args.overwrite,
+        profile_name=args.profile,
+    )
     print(json.dumps(status, indent=2))
 
 
