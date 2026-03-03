@@ -2,10 +2,10 @@
 
 from agent_context.profiles import MCPServer, ToolProfile
 from agent_context.skills import (
-    BUILTIN_BUNDLES,
     SkillBundle,
     compose_bundles,
     get_bundle,
+    list_bundle_names,
 )
 
 
@@ -87,8 +87,8 @@ class TestBuiltinBundles:
 
     def test_oncall_bundle_exists(self):
         """Test that oncall bundle exists with correct configuration."""
-        assert "oncall" in BUILTIN_BUNDLES
-        bundle = BUILTIN_BUNDLES["oncall"]
+        assert "oncall" in list_bundle_names()
+        bundle = get_bundle("oncall")
         assert bundle.name == "oncall"
         assert "incident investigation" in bundle.description.lower()
         assert len(bundle.mcp_servers) == 5
@@ -103,8 +103,8 @@ class TestBuiltinBundles:
 
     def test_azure_dev_bundle_exists(self):
         """Test that azure-dev bundle exists with correct configuration."""
-        assert "azure-dev" in BUILTIN_BUNDLES
-        bundle = BUILTIN_BUNDLES["azure-dev"]
+        assert "azure-dev" in list_bundle_names()
+        bundle = get_bundle("azure-dev")
         assert bundle.name == "azure-dev"
         assert "azure" in bundle.description.lower()
         assert "kusto" in bundle.description.lower()
@@ -118,8 +118,8 @@ class TestBuiltinBundles:
 
     def test_web_dev_bundle_exists(self):
         """Test that web-dev bundle exists with correct configuration."""
-        assert "web-dev" in BUILTIN_BUNDLES
-        bundle = BUILTIN_BUNDLES["web-dev"]
+        assert "web-dev" in list_bundle_names()
+        bundle = get_bundle("web-dev")
         assert bundle.name == "web-dev"
         assert "context7" in bundle.description.lower() or "docs" in bundle.description.lower()
         assert len(bundle.mcp_servers) == 3
@@ -132,8 +132,8 @@ class TestBuiltinBundles:
 
     def test_testing_bundle_exists(self):
         """Test that testing bundle exists with correct configuration."""
-        assert "testing" in BUILTIN_BUNDLES
-        bundle = BUILTIN_BUNDLES["testing"]
+        assert "testing" in list_bundle_names()
+        bundle = get_bundle("testing")
         assert bundle.name == "testing"
         assert "test runner" in bundle.description.lower()
         assert "coverage" in bundle.description.lower()
@@ -145,7 +145,8 @@ class TestBuiltinBundles:
 
     def test_all_bundles_have_required_fields(self):
         """Test that all bundles have required fields."""
-        for bundle_name, bundle in BUILTIN_BUNDLES.items():
+        for bundle_name in list_bundle_names():
+            bundle = get_bundle(bundle_name)
             assert bundle.name == bundle_name
             assert isinstance(bundle.description, str)
             assert isinstance(bundle.mcp_servers, list)
@@ -155,7 +156,8 @@ class TestBuiltinBundles:
 
     def test_all_bundle_servers_have_commands(self):
         """Test that all MCP servers in bundles have commands defined."""
-        for bundle_name, bundle in BUILTIN_BUNDLES.items():
+        for bundle_name in list_bundle_names():
+            bundle = get_bundle(bundle_name)
             for server in bundle.mcp_servers:
                 assert server.command, f"Server {server.name} in {bundle_name} has no command"
                 assert server.name, f"Server in {bundle_name} has no name"

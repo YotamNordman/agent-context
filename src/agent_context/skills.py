@@ -28,63 +28,66 @@ class SkillBundle:
             env_vars=copy.copy(self.env_vars),
         )
 
-# Predefined skill bundles
-BUILTIN_BUNDLES = {
-    "oncall": SkillBundle(
-        name="oncall",
-        description="ICM incident investigation skills — investigate and resolve on-call incidents",
-        mcp_servers=[
-            _SERVERS["icm"],
-            _SERVERS["ado-afd"],
-            _SERVERS["adx"],
-            _SERVERS["msdocs"],
-            _SERVERS["enghub"],
-        ],
-        custom_agents=[],
-        instruction_templates=["incident-investigation", "incident-resolution"],
-        env_vars={},
-    ),
-    "azure-dev": SkillBundle(
-        name="azure-dev",
-        description="ADO work items + Kusto queries for Azure development",
-        mcp_servers=[
-            _SERVERS["ado"],
-            _SERVERS["adx"],
-            _SERVERS["msdocs"],
-        ],
-        custom_agents=[],
-        instruction_templates=["azure-workitems", "kusto-queries"],
-        env_vars={},
-    ),
-    "web-dev": SkillBundle(
-        name="web-dev",
-        description="Context7 for docs lookup and web development",
-        mcp_servers=[
-            _SERVERS["msdocs"],
-            _SERVERS["enghub"],
-            _SERVERS["context7"],
-        ],
-        custom_agents=[],
-        instruction_templates=["docs-lookup", "web-patterns"],
-        env_vars={},
-    ),
-    "testing": SkillBundle(
-        name="testing",
-        description="Test runner detection and coverage rules",
-        mcp_servers=[],
-        custom_agents=[],
-        instruction_templates=["test-runner-detection", "coverage-rules"],
-        env_vars={"TEST_RUNNER": "auto", "COVERAGE_MIN": "80"},
-    ),
-}
+def _get_builtin_bundles() -> dict[str, SkillBundle]:
+    """Get a fresh copy of predefined skill bundles.
+    
+    Returns a new dictionary with deep copies of all bundles to prevent
+    global state contamination.
+    """
+    return {
+        "oncall": SkillBundle(
+            name="oncall",
+            description="ICM incident investigation skills — investigate and resolve on-call incidents",
+            mcp_servers=[
+                copy.deepcopy(_SERVERS["icm"]),
+                copy.deepcopy(_SERVERS["ado-afd"]),
+                copy.deepcopy(_SERVERS["adx"]),
+                copy.deepcopy(_SERVERS["msdocs"]),
+                copy.deepcopy(_SERVERS["enghub"]),
+            ],
+            custom_agents=[],
+            instruction_templates=["incident-investigation", "incident-resolution"],
+            env_vars={},
+        ),
+        "azure-dev": SkillBundle(
+            name="azure-dev",
+            description="ADO work items + Kusto queries for Azure development",
+            mcp_servers=[
+                copy.deepcopy(_SERVERS["ado"]),
+                copy.deepcopy(_SERVERS["adx"]),
+                copy.deepcopy(_SERVERS["msdocs"]),
+            ],
+            custom_agents=[],
+            instruction_templates=["azure-workitems", "kusto-queries"],
+            env_vars={},
+        ),
+        "web-dev": SkillBundle(
+            name="web-dev",
+            description="Context7 for docs lookup and web development",
+            mcp_servers=[
+                copy.deepcopy(_SERVERS["msdocs"]),
+                copy.deepcopy(_SERVERS["enghub"]),
+                copy.deepcopy(_SERVERS["context7"]),
+            ],
+            custom_agents=[],
+            instruction_templates=["docs-lookup", "web-patterns"],
+            env_vars={},
+        ),
+        "testing": SkillBundle(
+            name="testing",
+            description="Test runner detection and coverage rules",
+            mcp_servers=[],
+            custom_agents=[],
+            instruction_templates=["test-runner-detection", "coverage-rules"],
+            env_vars={"TEST_RUNNER": "auto", "COVERAGE_MIN": "80"},
+        ),
+    }
 
 
 def get_bundle(name: str) -> SkillBundle | None:
     """Get a bundle by name, or None if not found."""
-    bundle = BUILTIN_BUNDLES.get(name)
-    if bundle is not None:
-        return copy.deepcopy(bundle)
-    return None
+    bundles = _get_builtin_bundles()
+    return bundles.get(name)
 
 
 def compose_bundles(*bundle_names: str) -> SkillBundle:
@@ -92,6 +95,9 @@ def compose_bundles(*bundle_names: str) -> SkillBundle:
 
     Merges MCP servers (unique by name), custom agents, instruction templates,
     and environment variables from all specified bundles.
+
+    When multiple bundles contain servers with the same name, the server configuration
+    from the last bundle in the argument list takes precedence.
 
     Args:
         *bundle_names: Names of bundles to compose.
@@ -155,3 +161,8 @@ def compose_bundles(*bundle_names: str) -> SkillBundle:
         instruction_templates=merged_templates,
         env_vars=merged_env,
     )
+
+
+def list_bundle_names() -> list[str]:
+    """Get a list of all available bundle names."""
+    return list(_get_builtin_bundles().keys())
