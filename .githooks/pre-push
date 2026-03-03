@@ -1,0 +1,5 @@
+#!/bin/sh
+echo "🔍 Pre-push: lint + test..."
+uv run ruff check src/ tests/ || { echo "❌ Lint failed"; exit 1; }
+uv run pytest tests/ -x -q 2>/dev/null || { echo "❌ Tests failed"; exit 1; }
+echo "✅ All checks passed"

@@ -1,0 +1,37 @@
+name: CI
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check for banned files
+        run: |
+          BANNED='venv/|\.venv/|node_modules/|__pycache__/|\.pyc$|\.zip$|\.whl$'
+          BAD_FILES=$(git diff --name-only origin/main...HEAD | grep -E "$BANNED" || true)
+          if [ -n "$BAD_FILES" ]; then
+            echo "::error::PR contains banned files:"
+            echo "$BAD_FILES"
+            exit 1
+          fi
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install uv
+        run: pip install uv
+      - name: Install dependencies
+        run: uv venv && uv pip install -e ".[dev]"
+      - name: Lint
+        run: uv run ruff check src/ tests/
+      - name: Test
+        run: uv run pytest tests/ -v
