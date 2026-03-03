@@ -123,3 +123,46 @@ def get_profile(name: str) -> ToolProfile | None:
     if profile is not None:
         return copy.deepcopy(profile)
     return None
+
+
+def generate_mcp_config(
+    profile: ToolProfile | None = None,
+    project_id: str | None = None,
+) -> dict:
+    """Generate MCP configuration from a profile.
+
+    Args:
+        profile: ToolProfile to generate config from. If None, returns empty config.
+        project_id: Optional project identifier for context.
+
+    Returns:
+        Dict with mcp_servers, custom_agents, and env_vars keys.
+    """
+    if profile is None:
+        return {
+            "mcp_servers": [],
+            "custom_agents": [],
+            "env_vars": {},
+            "project_id": project_id,
+        }
+
+    config = {
+        "profile_name": profile.name,
+        "mcp_servers": [
+            {
+                "name": server.name,
+                "command": server.command,
+                "args": server.args,
+                "env": server.env,
+                "tools_filter": server.tools_filter,
+            }
+            for server in profile.mcp_servers
+        ],
+        "custom_agents": profile.custom_agents,
+        "env_vars": profile.env_vars,
+    }
+
+    if project_id:
+        config["project_id"] = project_id
+
+    return config

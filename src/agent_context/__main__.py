@@ -8,6 +8,7 @@ import logging
 import sys
 
 from .injector import inject
+from .profiles import get_profile
 
 
 def main() -> None:
@@ -24,6 +25,7 @@ def main() -> None:
     inject_cmd.add_argument("--acceptance-criteria", help="Acceptance criteria")
     inject_cmd.add_argument("--feedback", help="Previous review feedback")
     inject_cmd.add_argument("--project-id", help="Project identifier")
+    inject_cmd.add_argument("--profile", help="Tool profile name (base, oncall, azure, docs)")
     inject_cmd.add_argument("--overwrite", action="store_true", help="Overwrite existing files")
     inject_cmd.add_argument("--verbose", "-v", action="store_true")
 
@@ -50,9 +52,23 @@ def main() -> None:
     if args.project_id:
         task_context["project_id"] = args.project_id
 
-    status = inject(args.workspace, task_context=task_context or None, overwrite=args.overwrite)
+    # Load profile if specified
+    profile = None
+    if args.profile:
+        profile = get_profile(args.profile)
+        if profile is None:
+            logging.error("Profile not found: %s", args.profile)
+            sys.exit(1)
+
+    status = inject(
+        args.workspace,
+        task_context=task_context or None,
+        overwrite=args.overwrite,
+        profile=profile,
+    )
     print(json.dumps(status, indent=2))
 
 
 if __name__ == "__main__":
     main()
+
