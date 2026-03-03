@@ -5,7 +5,18 @@ Usage:
 """
 
 from .injector import inject
+from .manifest import generate_manifest, manifest_to_dict, manifest_to_json, ManifestData
 from .profiles import BUILTIN_PROFILES, MCPServer, ToolProfile, get_profile
 
 __version__ = "0.1.0"
-__all__ = ["inject", "BUILTIN_PROFILES", "MCPServer", "ToolProfile", "get_profile"]
+__all__ = [
+    "inject",
+    "generate_manifest",
+    "manifest_to_dict",
+    "manifest_to_json",
+    "ManifestData",
+    "BUILTIN_PROFILES",
+    "MCPServer",
+    "ToolProfile",
+    "get_profile",
+]

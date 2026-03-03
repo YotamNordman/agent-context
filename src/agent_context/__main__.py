@@ -8,6 +8,7 @@ import logging
 import sys
 
 from .injector import inject
+from .manifest import generate_manifest, manifest_to_json
 
 
 def main() -> None:
@@ -27,6 +28,16 @@ def main() -> None:
     inject_cmd.add_argument("--overwrite", action="store_true", help="Overwrite existing files")
     inject_cmd.add_argument("--verbose", "-v", action="store_true")
 
+    manifest_cmd = sub.add_parser("manifest", help="Generate manifest JSON for agent session")
+    manifest_cmd.add_argument("workspace", help="Path to workspace root")
+    manifest_cmd.add_argument("--profile", default="base", help="Tool profile name (default: base)")
+    manifest_cmd.add_argument("--task-id", help="Task ID for context")
+    manifest_cmd.add_argument("--task-desc", help="Task description")
+    manifest_cmd.add_argument("--acceptance-criteria", help="Acceptance criteria")
+    manifest_cmd.add_argument("--feedback", help="Previous review feedback")
+    manifest_cmd.add_argument("--project-id", help="Project identifier")
+    manifest_cmd.add_argument("--verbose", "-v", action="store_true")
+
     args = parser.parse_args()
 
     if not args.command:
@@ -38,21 +49,43 @@ def main() -> None:
         format="%(levelname)s: %(message)s",
     )
 
-    task_context = {}
-    if args.task_id:
-        task_context["task_id"] = args.task_id
-    if args.task_desc:
-        task_context["description"] = args.task_desc
-    if args.acceptance_criteria:
-        task_context["acceptance_criteria"] = args.acceptance_criteria
-    if args.feedback:
-        task_context["feedback"] = args.feedback
-    if args.project_id:
-        task_context["project_id"] = args.project_id
+    if args.command == "inject":
+        task_context = {}
+        if args.task_id:
+            task_context["task_id"] = args.task_id
+        if args.task_desc:
+            task_context["description"] = args.task_desc
+        if args.acceptance_criteria:
+            task_context["acceptance_criteria"] = args.acceptance_criteria
+        if args.feedback:
+            task_context["feedback"] = args.feedback
+        if args.project_id:
+            task_context["project_id"] = args.project_id
 
-    status = inject(args.workspace, task_context=task_context or None, overwrite=args.overwrite)
-    print(json.dumps(status, indent=2))
+        status = inject(args.workspace, task_context=task_context or None, overwrite=args.overwrite)
+        print(json.dumps(status, indent=2))
+
+    elif args.command == "manifest":
+        task_context = {}
+        if args.task_id:
+            task_context["task_id"] = args.task_id
+        if args.task_desc:
+            task_context["description"] = args.task_desc
+        if args.acceptance_criteria:
+            task_context["acceptance_criteria"] = args.acceptance_criteria
+        if args.feedback:
+            task_context["feedback"] = args.feedback
+        if args.project_id:
+            task_context["project_id"] = args.project_id
+
+        manifest = generate_manifest(
+            args.workspace,
+            profile=args.profile,
+            task_context=task_context or None,
+        )
+        print(manifest_to_json(manifest))
 
 
 if __name__ == "__main__":
     main()
+
