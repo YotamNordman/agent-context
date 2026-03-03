@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -118,4 +119,7 @@ BUILTIN_PROFILES = {
 
 def get_profile(name: str) -> ToolProfile | None:
     """Get a profile by name, or None if not found."""
-    return BUILTIN_PROFILES.get(name)
+    profile = BUILTIN_PROFILES.get(name)
+    if profile is not None:
+        return copy.deepcopy(profile)
+    return None

@@ -176,29 +176,40 @@ class TestGetProfile:
 
 
 class TestProfileImmutability:
-    """Tests for profile data integrity."""
+    """Tests that verify BUILTIN_PROFILES are protected from mutations via deep copying."""
 
-    def test_modifying_returned_profile_doesnt_affect_builtin(self):
-        """Test that modifying a returned profile doesn't affect the builtin."""
+    def test_env_var_mutations_dont_affect_builtin_profiles(self):
+        """Test that modifying env_vars in a returned profile doesn't affect BUILTIN_PROFILES."""
+        # Get a profile and modify its env_vars
         profile1 = get_profile("base")
         if profile1:
-            # Attempt to modify the returned profile
             profile1.env_vars["NEW_KEY"] = "new_value"
 
-        # Get the profile again and verify it's unchanged
+        # Get the same profile again - it should be unchanged
         profile2 = get_profile("base")
-        # Note: This test shows that returned profiles are mutable references
-        # In a production system, you might want to return deep copies
         assert profile2 is not None
-        assert "NEW_KEY" in profile2.env_vars  # Currently true due to reference sharing
+        assert "NEW_KEY" not in profile2.env_vars, "Mutations should not persist due to deep copying"
 
-    def test_modifying_servers_list_doesnt_affect_builtin(self):
-        """Test that modifying server list reference affects the builtin."""
-        profile1 = get_profile("base")
+    def test_mcp_servers_list_mutations_dont_affect_builtin_profiles(self):
+        """Test that modifying mcp_servers list doesn't affect BUILTIN_PROFILES."""
+        # Get a profile with servers and modify the list
+        profile1 = get_profile("azure")  
         original_count = len(profile1.mcp_servers) if profile1 else 0
 
-        # Since we return references to the actual dataclass instances,
-        # modifications will be reflected
-        # This is expected behavior for current implementation
+        if profile1:
+            new_server = MCPServer(name="test", command="test-cmd")
+            profile1.mcp_servers.append(new_server)
+
+        # Get the same profile again - the original list should be unchanged
+        profile2 = get_profile("azure")
+        assert profile2 is not None
+        assert len(profile2.mcp_servers) == original_count, "List mutations should not persist due to deep copying"
+        
+    def test_returned_profiles_are_independent_instances(self):
+        """Test that multiple calls to get_profile return independent instances."""
+        profile1 = get_profile("base")
         profile2 = get_profile("base")
-        assert (len(profile2.mcp_servers) if profile2 else 0) == original_count
+        
+        assert profile1 is not None
+        assert profile2 is not None
+        assert profile1 is not profile2, "Each call should return a separate deep copy"
