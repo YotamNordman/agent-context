@@ -36,6 +36,40 @@ from agent_context import inject
 inject("/workspace", task_context={"task_id": "fix-auth", "feedback": "..."})
 ```
 
+## Project Profiles
+
+### profiles.yaml
+
+The `profiles.yaml` file at the repository root maps each project to its tool profile. This determines which MCP servers and custom agents are available for agents working on that project.
+
+**Format:**
+```yaml
+projects:
+  <project-name>:
+    profile: <profile-name>
+    description: <optional description>
+```
+
+**Available Profiles:**
+- `base` — Minimal tools for general development (no specialized MCP servers)
+- `oncall` — On-call support with ICM, ADO-AFD, ADX, MSDocs, EngHub servers
+- `azure` — Azure-focused tools with ADO, ADX, MSDocs servers  
+- `docs` — Documentation tools with MSDocs, EngHub, Context7 servers
+
+**Example:**
+```yaml
+projects:
+  agent-context:
+    profile: base
+    description: Workspace context injection system
+
+  datapipelines:
+    profile: azure
+    description: Azure-focused data processing
+```
+
+See `profiles.py` for detailed server configurations.
+
 ## Integration with dispatcher
 
 In the K8s Job setup command, add before `copilot` runs:
