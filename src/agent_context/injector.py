@@ -39,7 +39,8 @@ def inject(
 
     # Generate MCP config if profile is provided
     if profile:
-        mcp_config = generate_mcp_config(profile=profile)
+        project_id = task_context.get("project_id") if task_context else None
+        mcp_config = generate_mcp_config(profile=profile, project_id=project_id)
         rendered["mcp-config.json"] = json.dumps(mcp_config, indent=2)
 
     instructions_dir = workspace / ".github" / "instructions"
