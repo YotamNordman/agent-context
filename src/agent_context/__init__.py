@@ -4,8 +4,15 @@ Usage:
     python -m agent_context inject /workspace [--task-id X] [--task-desc "..."]
 """
 
-from .injector import inject
+from .injector import inject, generate_mcp_config
 from .profiles import BUILTIN_PROFILES, MCPServer, ToolProfile, get_profile
 
 __version__ = "0.1.0"
-__all__ = ["inject", "BUILTIN_PROFILES", "MCPServer", "ToolProfile", "get_profile"]
+__all__ = [
+    "inject",
+    "generate_mcp_config",
+    "BUILTIN_PROFILES",
+    "MCPServer",
+    "ToolProfile",
+    "get_profile",
+]
