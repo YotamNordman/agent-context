@@ -1,0 +1,9 @@
+---
+description: 'Files that must never be committed — CI will reject PRs containing these'
+applyTo: '**'
+---
+
+# Banned Files
+Never commit: `venv/`, `node_modules/`, `__pycache__/`, `playwright-report/`, `test-results/`, `*.zip`, `*.whl`, `*.db`, `.env`, `*.key`, `*.pem`
+
+Never hardcode secrets — use environment variables.

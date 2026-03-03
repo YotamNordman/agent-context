@@ -1,0 +1,19 @@
+---
+description: 'Testing requirements — write tests, verify they pass'
+applyTo: '{% if test_dirs %}{{ test_dirs | join(",") }}{% else %}tests/**{% endif %}'
+---
+
+# Testing
+{% if test_runner == "pytest" %}
+- Framework: pytest
+- Run: `{{ test_command }}`
+- Import the package as `from {{ package_name or "package" }} import ...` (not `from src.X`)
+{% elif test_runner == "playwright" %}
+- Framework: Playwright
+- Run: `{{ test_command }}`
+- Mock API calls with `page.route()` — never depend on a live backend
+{% elif test_runner %}
+- Run: `{{ test_command }}`
+{% endif %}
+- Write tests for all new code — PRs without tests will be rejected
+- Run tests before committing and fix any failures
