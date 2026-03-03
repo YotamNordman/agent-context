@@ -79,8 +79,8 @@ def inject_custom_agents(
     Args:
         workspace: Path to the git workspace root.
         profile: Profile name (str) or ToolProfile object.
-        overwrite: If True, overwrite existing agent files. Default: only add
-            missing.
+        overwrite: If True, overwrite existing agent files. Default: only
+            add missing.
 
     Returns:
         Dict of {filename: "written" | "skipped" | "error" | "empty"} for each agent file.
@@ -171,4 +171,3 @@ def _format_agent_file(agent: AgentDefinition) -> str:
         ])
 
     return "\n".join(lines)
-
