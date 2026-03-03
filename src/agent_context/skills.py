@@ -5,7 +5,7 @@ from __future__ import annotations
 import copy
 from dataclasses import dataclass, field
 
-from .profiles import MCPServer, ToolProfile
+from .profiles import MCPServer, ToolProfile, _SERVERS
 
 
 @dataclass
@@ -27,18 +27,6 @@ class SkillBundle:
             custom_agents=copy.copy(self.custom_agents),
             env_vars=copy.copy(self.env_vars),
         )
-
-
-# Reference to predefined MCP servers from profiles
-_SERVERS = {
-    "icm": MCPServer(name="icm", command="mcp-icm"),
-    "ado-afd": MCPServer(name="ado-afd", command="mcp-ado-afd"),
-    "adx": MCPServer(name="adx", command="mcp-adx"),
-    "msdocs": MCPServer(name="msdocs", command="mcp-msdocs"),
-    "enghub": MCPServer(name="enghub", command="mcp-enghub"),
-    "ado": MCPServer(name="ado", command="mcp-ado"),
-    "context7": MCPServer(name="context7", command="mcp-context7"),
-}
 
 # Predefined skill bundles
 BUILTIN_BUNDLES = {
