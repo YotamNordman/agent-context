@@ -1,0 +1,37 @@
+# Tool profiles registry
+# Maps each project to its tool profile, which determines available MCP servers and agents.
+#
+# Profile types:
+# - base: Minimal tools, suitable for general development
+# - oncall: On-call support with ICM, ADO-AFD, ADX, MSDocs, EngHub servers
+# - azure: Azure-focused development with ADO, ADX, MSDocs servers
+# - docs: Documentation and knowledge base tools with MSDocs, EngHub, Context7
+
+projects:
+  wow-hub:
+    profile: base
+    description: WoW Hub project - general development tools
+
+  wow-console:
+    profile: base
+    description: WoW Console project - general development tools
+
+  wow-infra:
+    profile: base
+    description: WoW Infrastructure project - general development tools
+
+  agent-context:
+    profile: base
+    description: Agent Context - workspace context injection system
+
+  agent-telemetry:
+    profile: base
+    description: Agent Telemetry - observability and monitoring for agents
+
+  ezra:
+    profile: oncall
+    description: Ezra on-call management system with incident support tools
+
+  datapipelines:
+    profile: azure
+    description: Data Pipelines - Azure-focused data processing and infrastructure
