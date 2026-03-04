@@ -1,0 +1,22 @@
+name: Deploy — Trigger Hub Rebuild
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  trigger-hub-rebuild:
+    runs-on: arc-runner
+    steps:
+      - name: Trigger agent-hub rebuild
+        run: |
+          # When this library changes, the hub image needs rebuilding
+          # to pick up the latest code
+          echo "Library agent-context updated — triggering hub rebuild"
+          cd /Users/yotamnordman/Work/agent-hub
+          git pull origin main --rebase
+          # Touch a file to trigger a new commit + deploy
+          echo "# Rebuild triggered by agent-context at $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> .rebuild-triggers
+          git add .rebuild-triggers
+          git commit -m "chore: rebuild for agent-context update" --allow-empty || true
+          git push origin main
