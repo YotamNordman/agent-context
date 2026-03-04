@@ -55,6 +55,7 @@ Traditional style guides don't help — agents already know Python/JS convention
 ┌─────────────────────────────────────────────────────────────┐
 │ Injector                                                    │
 │ - Writes instruction files to .github/instructions/        │
+│   (except copilot-instructions.md → .github/)              │
 │ - Generates mcp-config.json (if profile specified)         │
 │ Output: {filename → "written"|"skipped"|"error"}           │
 └─────────────────────────────────────────────────────────────┘
@@ -76,7 +77,7 @@ The analyzer detects:
 - **Source/test directories**: src/, tests/, test/, __tests__/, etc.
 
 ### Instruction Injection
-Four templates are rendered and injected into `.github/instructions/`:
+Four templates are rendered and injected into `.github/instructions/` (except `copilot-instructions.md` which goes to `.github/`):
 
 | File | Condition | Tokens | Purpose |
 |------|-----------|--------|---------|
@@ -98,7 +99,7 @@ Profiles define which MCP servers and custom agents are available for a project.
 Each profile is a `ToolProfile` containing:
 - `name`: Profile identifier
 - `mcp_servers`: List of MCPServer configs (command, args, env, tools_filter)
-- `custom_agents`: List of agent names (strings)
+- `custom_agents`: List of agent names (reserved for future use)
 - `env_vars`: Dict of environment variables
 
 ### Skill Bundles
@@ -107,12 +108,11 @@ Collections of related tools, agents, templates, and environment variables. Key 
 | Bundle | Servers | Agents | Purpose |
 |--------|---------|--------|---------|
 | `oncall` | icm, ado-afd, adx, msdocs, enghub | — | Incident investigation |
-| `azure` | ado, adx, msdocs | — | Azure operations |
-| `docs` | msdocs, enghub, context7 | — | Documentation tasks |
-| `python-dev` | — | black, mypy | Python code analysis |
-| `frontend` | — | eslint, prettier | Frontend tooling |
+| `azure-dev` | ado, adx, msdocs | — | Azure development |
+| `web-dev` | msdocs, enghub, context7 | — | Web development & docs |
+| `testing` | — | — | Test runner & coverage rules |
 
-Bundles can be composed with `compose_bundles(bundle_names)` to merge MCP servers, agents, and environment variables.
+Bundles can be composed with `compose_bundles(bundle_names...)` to merge MCP servers, agents, and environment variables.
 
 ### Project Profiles Registry (profiles.yaml)
 The `profiles.yaml` file maps projects to tool profiles:
@@ -262,7 +262,7 @@ print(f"Servers: {[s.name for s in oncall.mcp_servers]}")
 print("Available bundles:", list_bundle_names())
 
 # Compose multiple bundles
-combined = compose_bundles(["oncall", "python-dev"])
+combined = compose_bundles("oncall", "azure-dev")
 print(f"Combined servers: {[s.name for s in combined.mcp_servers]}")
 ```
 
@@ -298,7 +298,7 @@ Tool profiles define available MCP servers and agents for a project.
 class ToolProfile:
     name: str                              # e.g., "oncall", "azure", "base"
     mcp_servers: list[MCPServer] = []      # MCP server configurations
-    custom_agents: list[str] = []          # Agent names available for this project
+    custom_agents: list[str] = []          # Agent names (reserved for future use)
     env_vars: dict[str, str] = {}          # Environment variables
 ```
 
@@ -311,7 +311,7 @@ class MCPServer:
     command: str                           # e.g., "mcp-icm"
     args: list[str] = []                   # Arguments to command
     env: dict[str, str] = {}               # Server-specific env vars
-    tools_filter: Optional[list[str]] = None  # Only expose these tools (optional)
+    tools_filter: Optional[list[str]] = None  # Only expose these tools (reserved for future use)
 ```
 
 ### Example Profile Definition
@@ -335,7 +335,7 @@ oncall_profile = ToolProfile(
             env={},
         ),
     ],
-    custom_agents=["incident-investigator"],
+    custom_agents=[],  # Reserved for future use
     env_vars={"LOG_LEVEL": "DEBUG"},
 )
 ```
@@ -375,7 +375,7 @@ class SkillBundle:
     description: str = ""
     mcp_servers: list[MCPServer] = []
     custom_agents: list[str] = []
-    instruction_templates: list[str] = []
+    instruction_templates: list[str] = []  # Reserved for future use
     env_vars: dict[str, str] = {}
 ```
 
@@ -384,12 +384,12 @@ class SkillBundle:
 ```python
 from agent_context import SkillBundle, MCPServer
 
-python_dev = SkillBundle(
-    name="python-dev",
-    description="Python development tools and linters",
+testing_bundle = SkillBundle(
+    name="testing",
+    description="Test execution and coverage guidelines",
     mcp_servers=[],
-    custom_agents=["black-formatter", "mypy-type-checker"],
-    instruction_templates=["python-testing"],
+    custom_agents=[],  # Reserved for future use
+    instruction_templates=[],  # Reserved for future use
     env_vars={"PYTHONPATH": "src/"},
 )
 ```
@@ -400,8 +400,8 @@ python_dev = SkillBundle(
 from agent_context import compose_bundles
 
 # Merge multiple bundles
-combined = compose_bundles(["oncall", "python-dev"])
-# Result: MCP servers from oncall + python-dev agents + merged env_vars
+combined = compose_bundles("oncall", "azure-dev")
+# Result: MCP servers from oncall + azure-dev agents + merged env_vars
 ```
 
 ## MCP Config Generation
@@ -627,7 +627,7 @@ ls /tmp/test-workspace/.github/instructions/
 - ✗ Enforce style guides — agents know Python/JS conventions
 - ✗ Provide framework tutorials — only project-specific commands
 - ✗ Handle orchestration — this is context injection, not task planning
-- ✗ Create agents — only provides agent manifest definitions
+- ✗ Create or define agent manifests — custom_agents is reserved for future use
 
 ## Troubleshooting
 
