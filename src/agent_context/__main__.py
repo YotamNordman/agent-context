@@ -28,7 +28,6 @@ def main() -> None:
     inject_cmd.add_argument("--attempt-count", type=int, default=0, help="Number of previous attempts")
     inject_cmd.add_argument("--overwrite", action="store_true", help="Overwrite existing files")
     inject_cmd.add_argument("--verbose", "-v", action="store_true")
-    inject_cmd.add_argument("--verbose", "-v", action="store_true")
 
     args = parser.parse_args()
 
