@@ -616,7 +616,7 @@ ls /tmp/test-workspace/.github/instructions/
 
 ## Testing Details
 
-- **Unit tests**: 23 tests covering analyzer, injector, profiles, skills
+- **Unit tests**: 104 tests covering analyzer, injector, profiles, skills
 - **Integration tests**: Profile loading, mcp-config generation
 - **Time**: <1 second total
 - **Coverage**: >90% of core logic
