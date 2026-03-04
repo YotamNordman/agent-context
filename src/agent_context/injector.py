@@ -71,8 +71,17 @@ def inject(
             status[filename] = "empty"
             continue
 
-        if filename == "copilot-instructions.md":
-            target = workspace / ".github" / "copilot-instructions.md"
+        # Route files to correct locations
+        if filename == "AGENTS.md":
+            target = workspace / "AGENTS.md"
+        elif filename.endswith(".agent.md"):
+            agents_dir = workspace / ".github" / "agents"
+            agents_dir.mkdir(parents=True, exist_ok=True)
+            target = agents_dir / filename
+        elif filename == "mcp.json":
+            github_dir = workspace / ".github"
+            github_dir.mkdir(parents=True, exist_ok=True)
+            target = github_dir / "mcp.json"
         else:
             target = instructions_dir / filename
 

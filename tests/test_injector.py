@@ -4,6 +4,8 @@ import json
 import tempfile
 from pathlib import Path
 
+import pytest
+
 from agent_context.injector import inject
 
 
@@ -17,94 +19,91 @@ def _make_workspace(files: dict[str, str]) -> Path:
 
 
 class TestInjection:
-    def test_injects_into_python_workspace(self):
-        ws = _make_workspace({
-            "pyproject.toml": '[project]\nname = "myapp"\n[tool.pytest.ini_options]\ntestpaths = ["tests"]',
-            "src/myapp/__init__.py": "",
-            "tests/test_main.py": "",
-        })
+    def test_injects_agents_md(self):
+        ws = _make_workspace({"pyproject.toml": '[project]\nname = "myapp"'})
         status = inject(ws)
+        assert status["AGENTS.md"] == "written"
+        assert (ws / "AGENTS.md").exists()
+        content = (ws / "AGENTS.md").read_text()
+        assert "Agent Instructions" in content
 
-        assert status["safety.instructions.md"] == "written"
-        assert status["git-workflow.instructions.md"] == "written"
-        assert status["testing.instructions.md"] == "written"
-        assert status["copilot-instructions.md"] == "written"
-
-        # Verify files exist
-        assert (ws / ".github" / "instructions" / "safety.instructions.md").exists()
-        assert (ws / ".github" / "copilot-instructions.md").exists()
-
-    def test_injects_into_js_workspace(self):
-        ws = _make_workspace({
-            "package.json": json.dumps({
-                "name": "myapp",
-                "devDependencies": {"@playwright/test": "^1.58", "vite": "^6"},
-                "scripts": {"build": "vite build", "test": "npx playwright test"},
-            }),
-            "tests/e2e.spec.js": "",
-        })
-        status = inject(ws)
-
-        assert status["safety.instructions.md"] == "written"
-        assert status["testing.instructions.md"] == "written"
-
-        # Copilot instructions should mention playwright
-        content = (ws / ".github" / "copilot-instructions.md").read_text()
-        assert "playwright" in content.lower() or "npx" in content
-
-    def test_skips_existing_files(self):
-        ws = _make_workspace({
-            "pyproject.toml": "",
-            ".github/instructions/safety.instructions.md": "# Custom safety rules",
-        })
-        status = inject(ws)
-
-        # Should skip the existing file
-        assert status["safety.instructions.md"] == "skipped"
-        # Existing content preserved
-        content = (ws / ".github" / "instructions" / "safety.instructions.md").read_text()
-        assert content == "# Custom safety rules"
-
-    def test_overwrite_replaces_existing(self):
-        ws = _make_workspace({
-            "pyproject.toml": "",
-            ".github/instructions/safety.instructions.md": "# Old",
-        })
-        status = inject(ws, overwrite=True)
-
-        assert status["safety.instructions.md"] == "written"
-        content = (ws / ".github" / "instructions" / "safety.instructions.md").read_text()
-        assert "Banned Files" in content
-
-    def test_task_context_injected(self):
+    def test_injects_build_agent_for_build_tasks(self):
         ws = _make_workspace({"pyproject.toml": ""})
-        inject(ws, task_context={
-            "task_id": "fix-auth",
-            "acceptance_criteria": "Login returns 200",
-            "feedback": "Missing error handling for invalid tokens",
-        })
+        status = inject(ws, task_context={"job_type": "copilot-auto"})
+        assert status["build.agent.md"] == "written"
+        assert (ws / ".github" / "agents" / "build.agent.md").exists()
 
-        content = (ws / ".github" / "copilot-instructions.md").read_text()
-        assert "Login returns 200" in content
-        assert "Missing error handling" in content
+    def test_injects_review_agent_for_review_tasks(self):
+        ws = _make_workspace({"pyproject.toml": ""})
+        status = inject(ws, task_context={"job_type": "review"})
+        assert status["review.agent.md"] == "written"
+        assert (ws / ".github" / "agents" / "review.agent.md").exists()
 
-    def test_minimal_workspace(self):
-        ws = _make_workspace({"README.md": "# Hello"})
+    def test_injects_mcp_config(self):
+        ws = _make_workspace({"pyproject.toml": ""})
         status = inject(ws)
+        assert status["mcp.json"] == "written"
+        assert (ws / ".github" / "mcp.json").exists()
 
-        # Should still inject safety + git workflow + copilot-instructions
+    def test_injects_safety_instructions(self):
+        ws = _make_workspace({"pyproject.toml": ""})
+        status = inject(ws)
         assert status["safety.instructions.md"] == "written"
-        assert status["git-workflow.instructions.md"] == "written"
-        assert status["copilot-instructions.md"] == "written"
-        # No testing template (no test runner detected)
+
+    def test_injects_testing_when_detected(self):
+        ws = _make_workspace({
+            "pyproject.toml": '[tool.pytest.ini_options]\ntestpaths = ["tests"]',
+            "tests/__init__.py": "",
+        })
+        status = inject(ws)
+        assert status["testing.instructions.md"] == "written"
+
+    def test_no_testing_without_test_runner(self):
+        ws = _make_workspace({"README.md": "hello"})
+        status = inject(ws)
         assert "testing.instructions.md" not in status
 
+    def test_fleet_mode_on_high_attempt_count(self):
+        ws = _make_workspace({"pyproject.toml": ""})
+        inject(ws, task_context={"attempt_count": 3}, overwrite=True)
+        content = (ws / "AGENTS.md").read_text()
+        assert "fleet" in content.lower() or "Fleet" in content
+
+    def test_plan_first_on_retry(self):
+        ws = _make_workspace({"pyproject.toml": ""})
+        inject(ws, task_context={"attempt_count": 1}, overwrite=True)
+        content = (ws / "AGENTS.md").read_text()
+        assert "Plan First" in content or "plan" in content.lower()
+
+    def test_feedback_injected(self):
+        ws = _make_workspace({"pyproject.toml": ""})
+        inject(ws, task_context={"feedback": "Missing error handling for null"}, overwrite=True)
+        content = (ws / "AGENTS.md").read_text()
+        assert "Missing error handling" in content
+
+    def test_skips_existing_files(self):
+        ws = _make_workspace({"pyproject.toml": "", "AGENTS.md": "# Custom"})
+        status = inject(ws)
+        assert status["AGENTS.md"] == "skipped"
+        assert (ws / "AGENTS.md").read_text() == "# Custom"
+
+    def test_overwrite_replaces(self):
+        ws = _make_workspace({"pyproject.toml": "", "AGENTS.md": "# Old"})
+        status = inject(ws, overwrite=True)
+        assert status["AGENTS.md"] == "written"
+        assert "Agent Instructions" in (ws / "AGENTS.md").read_text()
+
     def test_raises_on_missing_workspace(self):
-        import pytest
         with pytest.raises(ValueError):
             inject("/nonexistent/path")
 
-    def test_creates_github_directory(self):
-        ws = _make_workspace({"main.py": "print('hello')"})
+    def test_js_workspace(self):
+        ws = _make_workspace({
+            "package.json": json.dumps({
+                "devDependencies": {"@playwright/test": "^1.58"},
+                "scripts": {"test": "npx playwright test", "build": "vite build"},
+            }),
+        })
         inject(ws)
-        assert (ws / ".github" / "instructions").is_dir()
+        content = (ws / "AGENTS.md").read_text()
+        assert "javascript" in content.lower() or "playwright" in content.lower()

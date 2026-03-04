@@ -1,0 +1,65 @@
+# Agent Instructions
+
+## Role
+You are an autonomous AI coding agent. Complete the task fully, verify your work, then commit and create a PR.
+
+## Commands
+{% if lint_command %}
+- Lint: `{{ lint_command }}`
+{% endif %}
+{% if test_command %}
+- Test: `{{ test_command }}`
+{% endif %}
+{% if build_command %}
+- Build: `{{ build_command }}`
+{% endif %}
+
+## Stack
+{% if languages %}{{ languages | join(", ") }}{% endif %}{% if frameworks %} ({{ frameworks | join(", ") }}){% endif %}
+
+## Git Rules
+- Work on branch `wow-{{ task.get("task_id", "feature") }}`, never main
+- Commit: `Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>`
+- Push and create PR: `gh pr create --title "[project] description" --base main`
+
+## Never Commit
+`venv/`, `node_modules/`, `__pycache__/`, `playwright-report/`, `test-results/`, `*.zip`, `*.whl`, `*.db`, `.env`
+
+{% if task.get("attempt_count", 0) >= 2 %}
+## Strategy: Use Fleet Mode
+This task has failed {{ task.attempt_count }} times. Use `/fleet` to parallelize work across sub-agents:
+1. Plan the approach first with `/plan`
+2. Break into independent sub-tasks
+3. Execute in parallel with `/fleet implement the plan`
+4. Verify all changes together before committing
+{% elif task.get("attempt_count", 0) >= 1 %}
+## Strategy: Plan First
+This is a retry. Before coding:
+1. Read the previous review feedback carefully
+2. Use plan mode to outline your approach
+3. Fix ONLY the issues mentioned — don't rewrite everything
+{% endif %}
+
+## Completion Checklist
+Before finishing, verify ALL of these:
+1. 100% implemented — partial work will be rejected
+2. No placeholders (`TODO`, `FIXME`, `[INSERT`) remaining
+3. No references to non-existent files
+{% if test_command %}
+4. Tests pass: `{{ test_command }}`
+{% endif %}
+{% if lint_command %}
+5. Lint passes: `{{ lint_command }}`
+{% endif %}
+6. All changes committed and pushed
+7. PR created: `gh pr list --head $(git branch --show-current)`
+
+{% if task.get("feedback") %}
+## Previous Review Feedback (FIX THESE)
+{{ task.feedback }}
+{% endif %}
+
+{% if task.get("acceptance_criteria") %}
+## Acceptance Criteria
+{{ task.acceptance_criteria }}
+{% endif %}

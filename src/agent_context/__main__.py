@@ -24,8 +24,10 @@ def main() -> None:
     inject_cmd.add_argument("--acceptance-criteria", help="Acceptance criteria")
     inject_cmd.add_argument("--feedback", help="Previous review feedback")
     inject_cmd.add_argument("--project-id", help="Project identifier")
-    inject_cmd.add_argument("--profile", help="Tool profile name (base, oncall, azure, docs)")
+    inject_cmd.add_argument("--job-type", help="Job type: copilot-auto, review, script")
+    inject_cmd.add_argument("--attempt-count", type=int, default=0, help="Number of previous attempts")
     inject_cmd.add_argument("--overwrite", action="store_true", help="Overwrite existing files")
+    inject_cmd.add_argument("--verbose", "-v", action="store_true")
     inject_cmd.add_argument("--verbose", "-v", action="store_true")
 
     args = parser.parse_args()
@@ -50,12 +52,14 @@ def main() -> None:
         task_context["feedback"] = args.feedback
     if args.project_id:
         task_context["project_id"] = args.project_id
+    if args.job_type:
+        task_context["job_type"] = args.job_type
+    task_context["attempt_count"] = args.attempt_count
 
     status = inject(
         args.workspace,
         task_context=task_context or None,
         overwrite=args.overwrite,
-        profile_name=args.profile,
     )
     print(json.dumps(status, indent=2))
 

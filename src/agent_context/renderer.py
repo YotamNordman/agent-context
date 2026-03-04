@@ -30,16 +30,26 @@ def render_instructions(info: WorkspaceInfo, task_context: dict | None = None) -
     ctx = {**asdict(info), "task": task_context or {}}
     results: dict[str, str] = {}
 
-    # Always inject — these are tiny and prevent the top failure modes
+    # AGENTS.md — primary instructions file (highest priority in Copilot CLI)
+    results["AGENTS.md"] = _render(env, "AGENTS.md.j2", ctx)
+
+    # Safety instructions (always, tiny)
     results["safety.instructions.md"] = _render(env, "safety.instructions.md.j2", ctx)
-    results["git-workflow.instructions.md"] = _render(env, "git-workflow.instructions.md.j2", ctx)
 
     # Testing (if test runner detected)
     if info.test_runner:
         results["testing.instructions.md"] = _render(env, "testing.instructions.md.j2", ctx)
 
-    # Main copilot-instructions.md — workspace context + completion checklist
-    results["copilot-instructions.md"] = _render(env, "copilot-instructions.md.j2", ctx)
+    # Custom agents — build and review roles
+    job_type = (task_context or {}).get("job_type", "build")
+    desc = (task_context or {}).get("description", "")
+    if job_type == "review" or "review" in str(desc):
+        results["review.agent.md"] = _render(env, "review.agent.md.j2", ctx)
+    else:
+        results["build.agent.md"] = _render(env, "build.agent.md.j2", ctx)
+
+    # MCP config
+    results["mcp.json"] = _render(env, "mcp.json.j2", ctx)
 
     return results
 
