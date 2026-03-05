@@ -40,13 +40,17 @@ def render_instructions(info: WorkspaceInfo, task_context: dict | None = None) -
     if info.test_runner:
         results["testing.instructions.md"] = _render(env, "testing.instructions.md.j2", ctx)
 
-    # Custom agents — build and review roles
+    # Custom agents — select based on execution profile and job type
     job_type = (task_context or {}).get("job_type", "build")
     desc = (task_context or {}).get("description", "")
+    execution_profile = (task_context or {}).get("execution_profile", "standard")
+
     if job_type == "review" or "review" in str(desc):
-        results["review.agent.md"] = _render(env, "review.agent.md.j2", ctx)
+        template = "careful-review.agent.md.j2" if execution_profile == "careful" else "review.agent.md.j2"
+        results["review.agent.md"] = _render(env, template, ctx)
     else:
-        results["build.agent.md"] = _render(env, "build.agent.md.j2", ctx)
+        template = "careful-build.agent.md.j2" if execution_profile == "careful" else "build.agent.md.j2"
+        results["build.agent.md"] = _render(env, template, ctx)
 
     # MCP config
     results["mcp.json"] = _render(env, "mcp.json.j2", ctx)

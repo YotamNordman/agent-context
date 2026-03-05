@@ -26,6 +26,7 @@ def main() -> None:
     inject_cmd.add_argument("--project-id", help="Project identifier")
     inject_cmd.add_argument("--job-type", help="Job type: copilot-auto, review, script")
     inject_cmd.add_argument("--attempt-count", type=int, default=0, help="Number of previous attempts")
+    inject_cmd.add_argument("--execution-profile", help="Execution profile: standard or careful")
     inject_cmd.add_argument("--overwrite", action="store_true", help="Overwrite existing files")
     inject_cmd.add_argument("--verbose", "-v", action="store_true")
 
@@ -54,6 +55,8 @@ def main() -> None:
     if args.job_type:
         task_context["job_type"] = args.job_type
     task_context["attempt_count"] = args.attempt_count
+    if hasattr(args, "execution_profile") and args.execution_profile:
+        task_context["execution_profile"] = args.execution_profile
 
     status = inject(
         args.workspace,
