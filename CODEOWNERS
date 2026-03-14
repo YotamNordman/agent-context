@@ -1,0 +1,18 @@
+# CODEOWNERS for agent-context
+# Deterministic context injection for AI agent workspaces
+# For more information, see:
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners
+* @YotamNordman
+
+# Documentation
+*.md @YotamNordman
+/docs/ @YotamNordman
+
+# Source code
+/src/ @YotamNordman
+/lib/ @YotamNordman
+
+# Configuration and CI
+/.github/ @YotamNordman
